@@ -64,8 +64,8 @@ void TwoDimManipulator::home( double )
 bool TwoDimManipulator::performMovementLeftMouseButton(
     const double eventTimeDelta, const double dx, const double dy )
 {
-    _center.x() -= 100.0f * dx;
-    _center.y() -= 100.0f * dy;
+    _center.x() -= dx;
+    _center.y() -= dy;
     return false;
 }
 
