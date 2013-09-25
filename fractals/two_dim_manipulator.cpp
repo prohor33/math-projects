@@ -64,15 +64,15 @@ void TwoDimManipulator::home( double )
 bool TwoDimManipulator::performMovementLeftMouseButton(
     const double eventTimeDelta, const double dx, const double dy )
 {
-    _center.x() -= dx;
-    _center.y() -= dy;
+    _center.x() -= dx*_distance;
+    _center.y() -= dy*_distance;
     return false;
 }
 
 bool TwoDimManipulator::performMovementRightMouseButton(
     const double eventTimeDelta, const double dx, const double dy )
 {
-    _distance *= (1.0 + dy);
-    if ( _distance<1.0 ) _distance = 1.0;
+    _distance *= (1.0 + dy/_distance);
+    if ( _distance<0.001 ) _distance = 0.001;
     return false;
 }

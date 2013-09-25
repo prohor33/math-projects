@@ -12,12 +12,129 @@
 #include <stdio.h>
 #include <vector>
 #include <math.h>
+#include <time.h>
 
 #include "two_dim_manipulator.h"
 
 using namespace std;
 
-osg::Vec2 main_window_size( 500, 500 );
+class Line {
+public:
+  Line() : final(false) {};
+  Line(osg::Vec2 v0, osg::Vec2 v1, bool final=false) :
+      v0(v0), v1(v1), final(final) {};
+  osg::Vec2 v0;
+  osg::Vec2 v1;
+  bool final;
+};
+
+vector<Line> makeFractal(vector<Line> fractal,
+                         vector<Line> original,
+                         bool leaveOriginal=false);
+osg::Geometry* drawFractal(vector<Line> fractal);
+
+class FractalManager {
+public:
+  FractalManager() :
+      currFractalNumb(0),
+      fractalStage(0) {};
+  static FractalManager* instance() {
+    static FractalManager FractalManager_;
+    return &FractalManager_;
+  }
+  vector<Line> getCurrFractal() {
+    if (fractalStage >= FractalStages.size()) {
+      throw -1;
+      vector<Line> null;
+      return null;
+    }
+    return FractalStages.at(fractalStage);
+  }
+  void Next() {
+    if(currFractalNumb >= (OriginalCollection.size()-1))
+      return;
+    currFractalNumb++;
+    fractalStage = 0;
+    FractalStages.clear();
+    FractalStages.push_back(
+        OriginalCollection.at(currFractalNumb));
+    UpdateScene();
+  }
+  void Previous() {
+    if(currFractalNumb <= 0)
+      return;
+    currFractalNumb--;
+    fractalStage = 0;
+    FractalStages.push_back(
+      OriginalCollection.at(currFractalNumb));
+    UpdateScene();
+  }
+  void Up() {
+    fractalStage++;
+    if (fractalStage >= FractalStages.size()) {
+      try {
+        FractalStages.push_back(
+            makeFractal(FractalStages.at(fractalStage-1),
+            OriginalCollection.at(currFractalNumb),
+            flagLeaveOrigCollection.at(currFractalNumb)));
+      }
+      catch (int e) {
+        if (e == -1) {
+          // this stage is uncomplete
+          FractalStages.pop_back();
+          fractalStage--;
+          return;
+        }
+      }
+    }
+    UpdateScene();
+  }
+  void Down() {
+    if(fractalStage == 0)
+      return;
+    fractalStage--;
+    UpdateScene();
+  }
+  void UpdateScene() {
+    if (root->getNumChildren() > 1)
+      root->removeChild(1);
+    osg::ref_ptr<osg::Geode> geode = new osg::Geode;
+    try {
+      geode->addDrawable(drawFractal(getCurrFractal()));
+    }
+    catch (int e) {
+      if(e == -1)
+        cout << "exception: can't get current fractal" << endl;
+    }
+    root->addChild(geode.get());
+    printLog();
+  }
+  void addOriginal(vector<Line> original, bool flagLeave=false) {
+    OriginalCollection.push_back(original);
+    flagLeaveOrigCollection.push_back(flagLeave);
+  }
+  void setUp(osg::Group* root) {
+    this->root = root;
+    FractalStages.push_back(
+        OriginalCollection.at(currFractalNumb));
+    UpdateScene();
+  }
+  void printLog() {
+    cout << "fractal " << currFractalNumb <<
+        " on stage " << fractalStage << endl;
+  }
+private:
+  int currFractalNumb;
+  int fractalStage;
+  vector< vector<Line> > FractalStages;
+  vector<bool> flagLeaveOrigCollection;
+  vector< vector<Line> > OriginalCollection;
+  osg::Group* root;
+};
+
+#define FM FractalManager::instance()
+
+osg::Vec2 main_window_size( 800, 500 );
 
 class PickHandler : public osgGA::GUIEventHandler
 {
@@ -42,10 +159,21 @@ public:
 				}
 				return false;
 			}
-			case osgGA::GUIEventAdapter::KEYDOWN: {
+      case osgGA::GUIEventAdapter::KEYDOWN: {
 				switch( ea.getKey() ) {
-				case 'o':
-				//case 'ù':
+        case osgGA::GUIEventAdapter::KEY_Right:
+          FM->Next();
+          break;
+        case osgGA::GUIEventAdapter::KEY_Left:
+          FM->Previous();
+          break;
+        case osgGA::GUIEventAdapter::KEY_Up:
+          FM->Up();
+          break;
+        case osgGA::GUIEventAdapter::KEY_Down:
+          FM->Down();
+          break;
+	  		case 'o':
 				  break;
 				}
 				return false;
@@ -76,15 +204,6 @@ osg::Camera* createHUDCamera( double left, double right,
   return camera.release();
 }
 
-class Line {
-public:
-  Line() {};
-  Line(osg::Vec2 v0, osg::Vec2 v1) :
-      v0(v0), v1(v1) {};
-  osg::Vec2 v0;
-  osg::Vec2 v1;
-};
-
 vector<Line> wholeFractal;
 
 osg::Geometry* drawFractal(vector<Line> fractal) {
@@ -109,7 +228,7 @@ osg::Geometry* drawFractal(vector<Line> fractal) {
 
 	osg::StateSet* stateset_width = new osg::StateSet;
 	osg::LineWidth* linewidth = new osg::LineWidth();
-	linewidth->setWidth(1.0f);
+	linewidth->setWidth(2.0f);
 	stateset_width->setAttributeAndModes(linewidth,
                                        osg::StateAttribute::ON);
 	geom->setStateSet( stateset_width );
@@ -123,13 +242,27 @@ osg::Geometry* drawFractal(vector<Line> fractal) {
 
 vector<Line> makeFractal(vector<Line> fractal,
                          vector<Line> original,
-                         bool leaveOriginal=false) {
+                         bool leaveOriginal) {
+  clock_t startTime = clock();
   vector<Line> newFractal;
   vector<Line>::iterator cii;
   for (cii=fractal.begin(); cii!=fractal.end(); ++cii) {
+    // check if too much time gone
+    if (double(clock() - startTime) /
+        (double)CLOCKS_PER_SEC > 5) {
+      cout << "it takes too much time " <<
+        "(more 8 seconds) on this computer..." <<
+          endl << "canceled." << endl;
+      throw(-1);
+      return original;
+    }
     osg::Vec2 v0, v1;
     v0 = (*cii).v0;
     v1 = (*cii).v1;
+    if ((*cii).final) {
+      newFractal.push_back(Line(v0, v1, true));
+      continue;
+    }
     osg::Vec2 delta = v1 - v0;
     float coef = delta.length();
     vector<Line>::iterator cii2;
@@ -167,8 +300,11 @@ vector<Line> makeFractal(vector<Line> fractal,
       newFractal.push_back(Line(v0_orig, v1_orig));
     }
     if(leaveOriginal)
-      newFractal.push_back(Line(v0, v1));
+      newFractal.push_back(Line(v0, v1, true));
   }
+  cout << newFractal.size() << " vertices in " <<
+    double( clock() - startTime ) / (double)CLOCKS_PER_SEC <<
+    " seconds." << endl;
   return newFractal;
 }
 
@@ -182,30 +318,39 @@ int main (int argc, char **argv) {
 
   vector<Line> f0;
   f0.push_back(Line(osg::Vec2(0, 0),
-                          osg::Vec2(0.33f, 0)));
-  f0.push_back(Line(osg::Vec2(0.33f, 0),
-                          osg::Vec2(0.33f, 0.33f)));
-  f0.push_back(Line(osg::Vec2(0.33f, 0.33f),
-                          osg::Vec2(0.66f, 0.33f)));
-  f0.push_back(Line(osg::Vec2(0.66f, 0.33f),
-                          osg::Vec2(0.66f, 0)));
-  f0.push_back(Line(osg::Vec2(0.66f, 0),
+                          osg::Vec2(1.0f/3.0f, 0)));
+  f0.push_back(Line(osg::Vec2(1.0f/3.0f, 0),
+                          osg::Vec2(1.0f/3.0f, 1.0f/3.0f)));
+  f0.push_back(Line(osg::Vec2(1.0f/3.0f, 1.0f/3.0f),
+                          osg::Vec2(2.0f/3.0f, 1.0f/3.0f)));
+  f0.push_back(Line(osg::Vec2(2.0f/3.0f, 1.0f/3.0f),
+                          osg::Vec2(2.0f/3.0f, 0)));
+  f0.push_back(Line(osg::Vec2(2.0f/3.0f, 0),
                           osg::Vec2(1.0f, 0)));
 
-  vector<Line> f1 = makeFractal(f0, f0, false);
-  vector<Line> f2 = makeFractal(f1, f0, false);
 
-  osg::Geode* geode = new osg::Geode;
-  geode->addDrawable(drawFractal(f2));
-  root->addChild(geode);
+  FM->addOriginal(f0);
+  FM->setUp(root);
 
   osgViewer::Viewer viewer;
 
+  viewer.getCamera()->setClearColor(
+      osg::Vec4(1.0f, 1.0f, 0.8f, 1.0f));
   viewer.setSceneData(root);
 	viewer.addEventHandler( new PickHandler );
 	viewer.setCameraManipulator( new TwoDimManipulator );
 	viewer.setUpViewInWindow( 50, 50, 50 + main_window_size.x(),
                            50 + main_window_size.y(), 0 );
+
+  // change window title
+  viewer.realize();
+  typedef osgViewer::Viewer::Windows Windows;
+  Windows windows;
+  viewer.getWindows(windows);
+  for (Windows::iterator window = windows.begin();
+       window != windows.end(); ++window)
+  (*window)->setWindowName("Fractals");
+
 	viewer.run();
 
   return 0;
