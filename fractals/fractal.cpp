@@ -32,6 +32,7 @@ vector<Line> makeFractal(vector<Line> fractal,
                          vector<Line> original,
                          bool leaveOriginal=false);
 osg::Geometry* drawFractal(vector<Line> fractal);
+void originalFractals();
 
 class FractalManager {
 public:
@@ -57,7 +58,7 @@ public:
     fractalStage = 0;
     FractalStages.clear();
     FractalStages.push_back(
-        OriginalCollection.at(currFractalNumb));
+        FirstCollection.at(currFractalNumb));
     UpdateScene();
   }
   void Previous() {
@@ -65,8 +66,9 @@ public:
       return;
     currFractalNumb--;
     fractalStage = 0;
+    FractalStages.clear();
     FractalStages.push_back(
-      OriginalCollection.at(currFractalNumb));
+      FirstCollection.at(currFractalNumb));
     UpdateScene();
   }
   void Up() {
@@ -109,14 +111,21 @@ public:
     root->addChild(geode.get());
     printLog();
   }
-  void addOriginal(vector<Line> original, bool flagLeave=false) {
+  void addOriginal(vector<Line> original,
+                  bool flagLeave,
+                  vector<Line> first) {
     OriginalCollection.push_back(original);
+    FirstCollection.push_back(first);
     flagLeaveOrigCollection.push_back(flagLeave);
+  }
+  void addOriginal(vector<Line> original,
+                  bool flagLeave=false) {
+    addOriginal(original, flagLeave, original);
   }
   void setUp(osg::Group* root) {
     this->root = root;
     FractalStages.push_back(
-        OriginalCollection.at(currFractalNumb));
+        FirstCollection.at(currFractalNumb));
     UpdateScene();
   }
   void printLog() {
@@ -129,6 +138,7 @@ private:
   vector< vector<Line> > FractalStages;
   vector<bool> flagLeaveOrigCollection;
   vector< vector<Line> > OriginalCollection;
+   vector< vector<Line> > FirstCollection;
   osg::Group* root;
 };
 
@@ -297,7 +307,8 @@ vector<Line> makeFractal(vector<Line> fractal,
       v0_orig += v0;
       v1_orig += v0;
       // now we get a new line
-      newFractal.push_back(Line(v0_orig, v1_orig));
+      newFractal.push_back(Line(v0_orig, v1_orig,
+                                (*cii2).final));
     }
     if(leaveOriginal)
       newFractal.push_back(Line(v0, v1, true));
@@ -316,20 +327,7 @@ int main (int argc, char **argv) {
   osg::Group* root = new osg::Group;
   root->addChild(camera);
 
-  vector<Line> f0;
-  f0.push_back(Line(osg::Vec2(0, 0),
-                          osg::Vec2(1.0f/3.0f, 0)));
-  f0.push_back(Line(osg::Vec2(1.0f/3.0f, 0),
-                          osg::Vec2(1.0f/3.0f, 1.0f/3.0f)));
-  f0.push_back(Line(osg::Vec2(1.0f/3.0f, 1.0f/3.0f),
-                          osg::Vec2(2.0f/3.0f, 1.0f/3.0f)));
-  f0.push_back(Line(osg::Vec2(2.0f/3.0f, 1.0f/3.0f),
-                          osg::Vec2(2.0f/3.0f, 0)));
-  f0.push_back(Line(osg::Vec2(2.0f/3.0f, 0),
-                          osg::Vec2(1.0f, 0)));
-
-
-  FM->addOriginal(f0);
+  originalFractals();
   FM->setUp(root);
 
   osgViewer::Viewer viewer;
@@ -354,4 +352,124 @@ int main (int argc, char **argv) {
 	viewer.run();
 
   return 0;
+}
+
+void originalFractals() {
+  vector<Line> f0;
+  f0.push_back(Line(osg::Vec2(0, 0),
+                          osg::Vec2(1.0f/3.0f, 0)));
+  f0.push_back(Line(osg::Vec2(1.0f/3.0f, 0),
+                          osg::Vec2(1.0f/3.0f, 1.0f/3.0f)));
+  f0.push_back(Line(osg::Vec2(1.0f/3.0f, 1.0f/3.0f),
+                          osg::Vec2(2.0f/3.0f, 1.0f/3.0f)));
+  f0.push_back(Line(osg::Vec2(2.0f/3.0f, 1.0f/3.0f),
+                          osg::Vec2(2.0f/3.0f, 0)));
+  f0.push_back(Line(osg::Vec2(2.0f/3.0f, 0),
+                          osg::Vec2(1.0f, 0)));
+
+  vector<Line> f1;
+  f1.push_back(Line(osg::Vec2(0.5f, 0.5f),
+                          osg::Vec2(0.0f, 0.0f)));
+  f1.push_back(Line(osg::Vec2(0.5f, 0.5f),
+                          osg::Vec2(1.0f, 0.0f)));
+
+  vector<Line> f2;
+  f2.push_back(Line(osg::Vec2(0, 0),
+                          osg::Vec2(0, 1), true));
+  f2.push_back(Line(osg::Vec2(0, 0),
+                          osg::Vec2(1, 0), true));
+  f2.push_back(Line(osg::Vec2(1, 0),
+                          osg::Vec2(1, 1), true));
+  f2.push_back(Line(osg::Vec2(0, 1),
+                          osg::Vec2(1, 1), true));
+  f2.push_back(Line(osg::Vec2(0, 1),
+                          osg::Vec2(0.75f, 1+sqrt(3.0f)/4.0f)));
+  f2.push_back(Line(osg::Vec2(0.75f, 1+sqrt(3.0f)/4.0f),
+                          osg::Vec2(1, 1)));
+
+  vector<Line> f3, f3_first;
+  f3.push_back(Line(osg::Vec2(1, 0),
+                          osg::Vec2(1.0f, 0.4f)));
+  f3.push_back(Line(osg::Vec2(1.0f, 0.4f),
+                          osg::Vec2(1.4f, 0.4f)));
+  f3.push_back(Line(osg::Vec2(1.4f, 0.4f),
+                          osg::Vec2(1.4f, 0.0f)));
+  f3.push_back(Line(osg::Vec2(1.4f, 0.0f),
+                          osg::Vec2(1.0f, 0.0f)));
+  f3_first.push_back(Line(osg::Vec2(0, 0),
+                          osg::Vec2(0, 1)));
+  f3_first.push_back(Line(osg::Vec2(0, 1),
+                          osg::Vec2(1, 1)));
+  f3_first.push_back(Line(osg::Vec2(1, 1),
+                          osg::Vec2(1, 0)));
+  f3_first.push_back(Line(osg::Vec2(1, 0),
+                          osg::Vec2(0, 0)));
+
+  vector<Line> f4, f4_first;
+  f4.push_back(Line(osg::Vec2(1.0f, 0.0f),
+                          osg::Vec2(1.5f, 0.5f)));
+  f4.push_back(Line(osg::Vec2(1.0f, 0.0f),
+                          osg::Vec2(1.5f, -0.5f)));
+  f4_first.push_back(Line(osg::Vec2(0.0f, 0.0f),
+                          osg::Vec2(0.0f, 1.0f)));
+
+  vector<Line> f5, f5_first;
+  float l = 470.0f;
+  // M
+  f5.push_back(Line(osg::Vec2(50.0f, 0.0f)/l,
+                          osg::Vec2(50.0f, 100.0f)/l));
+  f5.push_back(Line(osg::Vec2(50.0f, 100.0f)/l,
+                          osg::Vec2(115.0f, 50.0f)/l));
+  f5.push_back(Line(osg::Vec2(115.0f, 50.0f)/l,
+                          osg::Vec2(180.0f, 100.0f)/l));
+  f5.push_back(Line(osg::Vec2(180.0f, 100.0f)/l,
+                          osg::Vec2(180.0f, 0.0f)/l));
+  // I
+  float d = -35;
+  f5.push_back(Line(osg::Vec2(225.0f+d, 100.0f)/l,
+                          osg::Vec2(275.0f+d, 100.0f)/l));
+  f5.push_back(Line(osg::Vec2(250.0f+d, 100.0f)/l,
+                          osg::Vec2(250.0f+d, 0.0f)/l));
+  f5.push_back(Line(osg::Vec2(275.0f+d, 0.0f)/l,
+                          osg::Vec2(225.0f+d, 0.0f)/l));
+
+  // P
+  d += -45;
+  f5.push_back(Line(osg::Vec2(350.0f+d, 100.0f)/l,
+                          osg::Vec2(410.0f+d, 100.0f)/l));
+  f5.push_back(Line(osg::Vec2(410.0f+d, 100.0f)/l,
+                          osg::Vec2(410.0f+d, 55.0f)/l));
+  f5.push_back(Line(osg::Vec2(410.0f+d, 55.0f)/l,
+                          osg::Vec2(350.0f+d, 55.0f)/l));
+  f5.push_back(Line(osg::Vec2(350.0f+d, 0.0f)/l,
+                          osg::Vec2(350.0f+d, 100.0f)/l));
+
+  // T
+  d += -40;
+  f5.push_back(Line(osg::Vec2(455.0f+d, 100.0f)/l,
+                          osg::Vec2(565.0f+d, 100.0f)/l));
+  f5.push_back(Line(osg::Vec2(510.0f+d, 100.0f)/l,
+                          osg::Vec2(510.0f+d, 0.0f)/l));
+
+  f5_first = f5;
+
+  vector<Line> f6;
+  f6.push_back(Line(osg::Vec2(),
+                          osg::Vec2()));
+  f6.push_back(Line(osg::Vec2(),
+                          osg::Vec2()));
+  f6.push_back(Line(osg::Vec2(),
+                          osg::Vec2()));
+  f6.push_back(Line(osg::Vec2(),
+                          osg::Vec2()));
+  f6.push_back(Line(osg::Vec2(),
+                          osg::Vec2()));
+
+
+  FM->addOriginal(f0);
+  FM->addOriginal(f3, true, f3_first);
+  FM->addOriginal(f1);
+  FM->addOriginal(f4, true, f4_first);
+  FM->addOriginal(f5, true, f5_first);
+  FM->addOriginal(f2);
 }
