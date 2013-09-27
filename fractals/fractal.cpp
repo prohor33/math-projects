@@ -453,16 +453,55 @@ void originalFractals() {
 
   f5_first = f5;
 
-  vector<Line> f6;
-  f6.push_back(Line(osg::Vec2(),
+  vector<Line> f6, f6_first;
+  float alpha = osg::PI / 180.0f * 36.0f;
+  l = 0.4f;
+  float x = l / 2.0f * tan(alpha);
+  float y = l * sin(alpha);
+  float z = l * cos(alpha);
+  osg::Vec2 f6_v1(1+l, 0);
+  osg::Vec2 f6_v2(1+l-z, -y);
+  osg::Vec2 f6_v3(1+l/2.0f, x);
+  osg::Vec2 f6_v4(1, 0);
+  osg::Vec2 f6_v5(1+z, -y);
+  f6.push_back(Line(f6_v1, f6_v4, true));
+  f6.push_back(Line(f6_v2, f6_v1));
+  f6.push_back(Line(f6_v3, f6_v2));
+  f6.push_back(Line(f6_v4, f6_v5));
+  f6.push_back(Line(f6_v5, f6_v3));
+
+  f6_v1.x() *= -1;
+  f6_v2.x() *= -1;
+  f6_v3.x() *= -1;
+  f6_v4.x() *= -1;
+  f6_v5.x() *= -1;
+  f6_first.push_back(Line(f6_v4, f6_v1));
+  f6_first.push_back(Line(f6_v1, f6_v2));
+  f6_first.push_back(Line(f6_v2, f6_v3));
+  f6_first.push_back(Line(f6_v5, f6_v4));
+  f6_first.push_back(Line(f6_v3, f6_v5));
+
+  vector<Line> f7, f7_first;
+  float r = 0.98f;
+  alpha = osg::PI / 6.0f;
+  f7.push_back(Line(osg::Vec2(1, 0),
+                          osg::Vec2(1+r*cos(alpha), r*sin(alpha))));
+
+  f7_first.push_back(Line(osg::Vec2(0,0),
+                          osg::Vec2(0,1)));
+  f7_first.push_back(Line(osg::Vec2(0,1),
+                          osg::Vec2(0,0)));
+
+  vector<Line> f8;
+  f8.push_back(Line(osg::Vec2(),
                           osg::Vec2()));
-  f6.push_back(Line(osg::Vec2(),
+  f8.push_back(Line(osg::Vec2(),
                           osg::Vec2()));
-  f6.push_back(Line(osg::Vec2(),
+  f8.push_back(Line(osg::Vec2(),
                           osg::Vec2()));
-  f6.push_back(Line(osg::Vec2(),
+  f8.push_back(Line(osg::Vec2(),
                           osg::Vec2()));
-  f6.push_back(Line(osg::Vec2(),
+  f8.push_back(Line(osg::Vec2(),
                           osg::Vec2()));
 
 
@@ -471,5 +510,7 @@ void originalFractals() {
   FM->addOriginal(f1);
   FM->addOriginal(f4, true, f4_first);
   FM->addOriginal(f5, true, f5_first);
+  FM->addOriginal(f7, true, f7_first);
+  FM->addOriginal(f6, true, f6_first);
   FM->addOriginal(f2);
 }
