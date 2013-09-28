@@ -395,7 +395,7 @@ void originalFractals() {
   f3.push_back(Line(osg::Vec2(1.4f, 0.4f),
                           osg::Vec2(1.4f, 0.0f)));
   f3.push_back(Line(osg::Vec2(1.4f, 0.0f),
-                          osg::Vec2(1.0f, 0.0f)));
+                          osg::Vec2(1.0f, 0.0f), true));
   f3_first.push_back(Line(osg::Vec2(0, 0),
                           osg::Vec2(0, 1)));
   f3_first.push_back(Line(osg::Vec2(0, 1),
